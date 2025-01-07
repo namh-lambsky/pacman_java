@@ -1,25 +1,30 @@
 package Window;
 
-import Tiles.Tile;
+import GameObjects.Collidable;
+import GameObjects.Entity.Directions;
+import GameObjects.Entity.Ghosts.Ghost;
 import Utilities.KeyHandler;
-import Tiles.Entity.Player;
+import GameObjects.Entity.Player;
 import Map.PacMAP;
 
 import java.awt.*;
+import java.util.HashSet;
 
 
 public class GamePanel extends javax.swing.JPanel implements Runnable {
-    final int originalTileSize = 16, scale = 3;
+    final int originalTileSize = 16, scale = 2;
     public int tileSize = originalTileSize * scale;
-    final public int maxCol = 19, maxRow = 21;
-    public final int screenWidth = tileSize * maxCol;
-    public final int screenHeight = tileSize * maxRow;
+    final public int screenRow = 25, screenCol = 19;//game 19cols 21rows
+    public final int screenWidth = tileSize * screenCol;
+    public final int screenHeight = tileSize * screenRow;
     final int FPS = 30;
 
     Thread gameThread;
     KeyHandler keyHandler = new KeyHandler();
     PacMAP pacmap;
     Player player;
+    HashSet<Ghost> ghosts;
+    HashSet<Collidable>points;
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
@@ -27,9 +32,9 @@ public class GamePanel extends javax.swing.JPanel implements Runnable {
         this.addKeyListener(keyHandler);
         this.setFocusable(true);
         pacmap = new PacMAP(this);
-        System.out.println(screenWidth + " " + screenHeight);
+        loadGhosts();
+        //System.out.println(screenWidth + " " + screenHeight);
     }
-
 
     public void startGameThread() {
         gameThread = new Thread(this);
@@ -54,61 +59,43 @@ public class GamePanel extends javax.swing.JPanel implements Runnable {
         }
     }
 
-    private void movePlayer() {
+    private void updatePlayerDirection() {
         player = pacmap.getPlayer();
-        if (keyHandler.upPressed && !checkCollisions("up")) {
-            player.setDirection("up");
-            player.move();
+        if (keyHandler.upPressed) {
+            player.setDirection(Directions.UP);
         }
-        if (keyHandler.downPressed && !checkCollisions("down")) {
-            player.setDirection("down");
-            player.move();
+        if (keyHandler.downPressed) {
+            player.setDirection(Directions.DOWN);
         }
-        if (keyHandler.leftPressed && !checkCollisions("left")) {
-            player.setDirection("left");
-            player.move();
+        if (keyHandler.leftPressed) {
+            player.setDirection(Directions.LEFT);
         }
-        if (keyHandler.rightPressed && !checkCollisions("right")) {
-            player.setDirection("right");
-            player.move();
+        if (keyHandler.rightPressed) {
+            player.setDirection(Directions.RIGHT);
+        }
+    }
+
+    private void loadGhosts() {
+        this.ghosts=pacmap.getGhosts();
+        for (Ghost ghost : ghosts) {
+            ghost.setDirection(Directions.randomDirection());
+        }
+    }
+
+    private void moveGhosts() {
+        for (Ghost ghost : new HashSet<Ghost>(ghosts)) {
+            ghost.move();
         }
     }
 
     private void update() {
-        movePlayer();
-    }
-
-    private boolean checkCollisions(String direction) {
-        // Simulates future player's position
-        int futureX = player.getX();
-        int futureY = player.getY();
-        int speed = player.getSpeed();
-
-        switch (direction) {
-            case "up" -> futureY -= speed;
-            case "down" -> futureY += speed;
-            case "left" -> futureX -= speed;
-            case "right" -> futureX += speed;
+        moveGhosts();
+        updatePlayerDirection();
+        player.move();
+        pacmap.setPlayerPointsPlaceHolder(String.valueOf(player.getPoints()));
+        if(player.getPoints()==175){
+            System.out.println("Game over");
         }
-
-        // Temp tile to check future collisions
-        Tile futurePlayer = new Tile(futureX, futureY, player.getWidth(), player.getHeight());
-
-        // Checks collision of player with a wall
-        for (Tile wall : pacmap.getWalls()) {
-            if (collision(futurePlayer, wall)) {
-                System.out.println("Collision detected in direction: " + direction);
-                return true; // Collision detected
-            }
-        }
-        return false; // No collision
-    }
-
-    private boolean collision(Tile tileA, Tile tileB) {
-        return tileA.x < tileB.x + tileB.width &&
-                tileA.x + tileA.width > tileB.x &&
-                tileA.y < tileB.y + tileB.height &&
-                tileA.y + tileA.height > tileB.y;
     }
 
     public void paintComponent(Graphics g) {
