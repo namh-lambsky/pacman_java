@@ -3,10 +3,10 @@ package GameObjects.Entity;
 import GameObjects.GameObject;
 import GameObjects.Tile;
 import Utilities.CollisionDetector;
-import Utilities.CollisionType;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+
 
 public abstract class Entity extends GameObject {
     protected int startX, startY;
@@ -18,31 +18,32 @@ public abstract class Entity extends GameObject {
     public BufferedImage[] up_list, down_list, left_list, right_list;
     private int spriteCounter = 0;
     private int sprite = 1;
-    private boolean movingUp = true;
+    private boolean startAnim = true;
+    public boolean portal = false;
 
-    public BufferedImage[] loadAnimation(BufferedImage... images) {
+    protected BufferedImage[] loadAnimation(BufferedImage... images) {
         return images;
     }
 
-    void spriteManager(int spritesQuantity) {
+    protected void spriteManager(int spritesQuantity) {
         spriteCounter++;
         if (spriteCounter > 3) {//Interval that changes the sprite
-            if (movingUp) {
+            if (startAnim) {
                 sprite++;
                 if (sprite >= spritesQuantity) {
-                    movingUp = false;
+                    startAnim = false;
                 }
             } else {
                 sprite--;
                 if (sprite <= 1) {
-                    movingUp = true;
+                    startAnim = true;
                 }
             }
             spriteCounter = 0;
         }
     }
 
-    BufferedImage swapImage(BufferedImage[] images) {
+    protected BufferedImage swapImage(BufferedImage[] images) {
         return switch (sprite) {
             case 2 -> images[1];
             case 3 -> images[2];
@@ -50,48 +51,38 @@ public abstract class Entity extends GameObject {
         };
     }
 
-    public Tile getSimulatedTile(Directions direction) {
+    protected BufferedImage imageManager() {
+        return switch (direction) {
+            case UP -> swapImage(up_list);
+            case DOWN -> swapImage(down_list);
+            case LEFT -> swapImage(left_list);
+            case RIGHT -> swapImage(right_list);
+        };
+    }
+
+    protected Tile getSimulatedTile(Directions direction) {
         int simulatedX = this.x;
         int simulatedY = this.y;
 
         switch (direction) {
             case UP:
-                simulatedY -= this.speed;
+                simulatedY -= speed;
                 break;
             case DOWN:
-                simulatedY += this.speed;
+                simulatedY += speed;
                 break;
             case LEFT:
-                simulatedX -= this.speed;
+                simulatedX -= speed;
                 break;
             case RIGHT:
-                simulatedX += this.speed;
+                simulatedX += speed;
                 break;
         }
 
         return new Tile(simulatedX, simulatedY, width, height);
     }
 
-    public void setDirection(Directions direction) {
-        this.prevDirection = this.direction;
-
-        Tile simulatedTile = getSimulatedTile(direction);
-
-        //If collision is true then direction will not change until collision is false
-        if (!collisionDetector.collisionManager(simulatedTile, CollisionType.WALL)) {
-            this.direction = direction;
-        } else {
-            if(this.direction == Directions.NONE) {
-                this.direction = Directions.randomDirection();
-            }
-            else{
-                this.direction = this.prevDirection;
-            }
-        }
-        updateVelocity();
-    }
-
-    public void updateVelocity() {
+    protected void updateVelocity() {
         switch (direction) {
             case UP:
                 this.velocityX = 0;
@@ -114,9 +105,13 @@ public abstract class Entity extends GameObject {
         }
     }
 
-    public abstract void loadImages();
+    protected abstract void setDirection(Directions direction);
+
+    protected abstract void loadImages();
 
     public abstract void draw(Graphics2D g2);
 
-    public abstract void move();
+    protected abstract void move();
+
+    protected abstract void portalManager();
 }

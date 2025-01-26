@@ -8,19 +8,25 @@ import Utilities.CollisionType;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.Random;
+
+import static Utilities.CONSTANTS.SCREEN_COL;
+import static Utilities.CONSTANTS.TILE_SIZE;
 
 public class Ghost extends Entity {
-    Colors color;
+    private static final Random RANDOM = new Random();
+
     public Ghost(Colors color, int x, int y, int width, int height, int speed, CollisionDetector collisionDetector) {
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
-        this.direction = Directions.NONE;
-        this.speed=speed;
-        this.collisionDetector=collisionDetector;
-        this.color=color;
+        this.speed = speed;
+        this.collisionDetector = collisionDetector;
         switch (color) {
             case BLUE:
                 loadImages("blue");
@@ -56,31 +62,94 @@ public class Ghost extends Entity {
         }
     }
 
-    @Override
-    public void loadImages() {}
+    private void changeDirection(boolean isForced) {
+        List<Directions> exits = getAvailableMoves();
+        Directions opposite = Directions.oppositeDirection(this.direction);
+        if (isForced) {
+            if (exits.size() > 1) {
+                exits.remove(opposite);
+            }
+            if (!exits.isEmpty()) {
+                setDirection(exits.get(RANDOM.nextInt(exits.size())));
+            }
+        } else {
+            if (exits.size() > 1) {
+                exits.remove(opposite);
+            }
+            if (exits.size() > 1 && RANDOM.nextInt(100) <= 60) {
+                setDirection(exits.get(RANDOM.nextInt(exits.size())));
+            } else if (!exits.contains(this.direction)) {
+                setDirection(exits.get(RANDOM.nextInt(exits.size())));
+            }
+        }
+
+    }
 
     @Override
-    public void draw(Graphics2D g2) {
-        g2.drawImage(right_1, x, y, width, height, null);
+    public void portalManager() {
+        if (collisionDetector.inPortalTiles(this)) {
+            this.portal=true;
+            if (this.x+TILE_SIZE < -TILE_SIZE){
+                this.x=SCREEN_COL*TILE_SIZE;
+            }
+            else if (this.x+TILE_SIZE>=SCREEN_COL*TILE_SIZE+TILE_SIZE){
+                this.x=-TILE_SIZE+1;
+            }
+        }
+        else {
+            this.portal=false;
+        }
+
+        if(portal){
+            this.speed=speed/2;
+        }
+    }
+
+    private boolean isBlocked(Tile tile) {
+        return collisionDetector.collisionManager(tile, CollisionType.WALL);
+    }
+
+    private List<Directions> getAvailableMoves() {
+        List<Directions> availableMoves = new ArrayList<>();
+        for (Directions dir : Directions.values()) {
+            Tile simulatedTile = getSimulatedTile(dir);
+            if (!isBlocked(simulatedTile)) {
+                availableMoves.add(dir);
+            }
+        }
+        return availableMoves;
+    }
+
+    @Override
+    public void setDirection(Directions direction) {
+        this.direction = direction;
+        updateVelocity();
+    }
+
+    @Override
+    public void loadImages() {
     }
 
     @Override
     public void move() {
-        System.out.println("Current: "+direction);
-        Tile newTile = getSimulatedTile(direction);
-        if (!collisionDetector.collisionManager(newTile, CollisionType.WALL)) {
-            this.x = newTile.getX();
-            this.y = newTile.getY();
+        if (isBlocked(getSimulatedTile(direction))) {
+            changeDirection(true);
+        } else {
+            // Update the position
+            this.x += this.velocityX;
+            this.y += this.velocityY;
+            if (collisionDetector.isAligned (this)) {
+                changeDirection(false);
+            }
+            portalManager();
+            System.out.println(this.x+" "+this.y);
+        }
+        spriteManager(2);
+    }
 
-        }
-        else{
-            System.out.println("Collision Detected");
-            Directions newDirection = Directions.randomDirection();
-            System.out.println("New: "+newDirection);
-            this.setDirection(newDirection);
-        }
-        if (color==Colors.RED){
-            //System.out.println("Color: "+this.color+" x:"+this.x+" y:"+this.y+" Direction:"+this.direction);
-        }
+    @Override
+    public void draw(Graphics2D g2) {
+        BufferedImage image = imageManager();
+        g2.drawImage(image, x, y, width, height, null);
     }
 }

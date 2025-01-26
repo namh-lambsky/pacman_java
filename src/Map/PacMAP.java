@@ -7,22 +7,22 @@ import GameObjects.Entity.Ghosts.Ghost;
 import GameObjects.Entity.Player;
 import GameObjects.Tile;
 import Utilities.CollisionDetector;
-import Window.GamePanel;
+import Utilities.DynamicNumber;
 
 import java.awt.*;
-import java.util.HashMap;
 import java.util.HashSet;
+
+import static Utilities.CONSTANTS.*;
 
 
 public class PacMAP {
-    GamePanel gamePanel;
     private Player player;
-    String playerPointsPlaceHolder;
     CollisionDetector collisionDetector = new CollisionDetector();
     HashSet<Collidable> walls;
     HashSet<Collidable> ghosts;
     HashSet<Collidable> points;
     HashSet<Char_to_Img> charToImages;
+    DynamicNumber scoreString;
     final String[] tileMap = {
             "__S__0______________",
             "___________________",
@@ -52,8 +52,7 @@ public class PacMAP {
     };
 
 
-    public PacMAP(GamePanel gamePanel) {
-        this.gamePanel = gamePanel;
+    public PacMAP() {
         loadMap();
     }
 
@@ -63,12 +62,12 @@ public class PacMAP {
         ghosts = new HashSet<>();
         points = new HashSet<>();
         charToImages =new HashSet<>();
-        for (int row = 0; row < this.gamePanel.screenRow; row++) {
-            for (int col = 0; col < this.gamePanel.screenCol; col++) {
+        for (int row = 0; row < SCREEN_ROW; row++) {
+            for (int col = 0; col < SCREEN_COL; col++) {
                 String currentRow = tileMap[row];
                 char tileChar = currentRow.charAt(col);
-                int xDistance = col * this.gamePanel.tileSize;
-                int yDistance = row * this.gamePanel.tileSize;
+                int xDistance = col * TILE_SIZE;
+                int yDistance = row * TILE_SIZE;
                 createTile(tileChar, xDistance, yDistance);
             }
         }
@@ -78,27 +77,27 @@ public class PacMAP {
     private void createTile(char type, int x, int y) {
         switch (type) {
             case 'X':
-                Tile wall = new Tile(x, y, gamePanel.tileSize, gamePanel.tileSize);
+                Tile wall = new Tile(x, y, TILE_SIZE, TILE_SIZE);
                 walls.add(wall);
                 break;
             case 'b':
-                Ghost blueGhost = new Ghost(Colors.BLUE, x, y, gamePanel.tileSize, gamePanel.tileSize,5,collisionDetector);
+                Ghost blueGhost = new Ghost(Colors.BLUE, x, y, TILE_SIZE, TILE_SIZE,5,collisionDetector);
                 //ghosts.add(blueGhost);
                 break;
             case 'r':
-                Ghost redGhost = new Ghost(Colors.RED, x, y, gamePanel.tileSize, gamePanel.tileSize,5,collisionDetector);
-                //ghosts.add(redGhost);
+                Ghost redGhost = new Ghost(Colors.RED, x, y, TILE_SIZE, TILE_SIZE,5,collisionDetector);
+                ghosts.add(redGhost);
                 break;
             case 'p':
-                Ghost pinkGhost = new Ghost(Colors.PINK, x, y, gamePanel.tileSize, gamePanel.tileSize,5,collisionDetector);
+                Ghost pinkGhost = new Ghost(Colors.PINK, x, y, TILE_SIZE, TILE_SIZE,5,collisionDetector);
                 //ghosts.add(pinkGhost);
                 break;
             case 'o':
-                Ghost orangeGhost = new Ghost(Colors.ORANGE, x, y, gamePanel.tileSize, gamePanel.tileSize,5,collisionDetector);
+                Ghost orangeGhost = new Ghost(Colors.ORANGE, x, y, TILE_SIZE, TILE_SIZE,5,collisionDetector);
                 //ghosts.add(orangeGhost);
                 break;
             case 'P':
-                player = new Player(x, y, gamePanel.tileSize, gamePanel.tileSize, gamePanel.tileSize / 8,collisionDetector);
+                player = new Player(x, y, TILE_SIZE, TILE_SIZE, TILE_SIZE / 8,collisionDetector);
                 break;
             case ' ':
                 Tile dot = new Tile(x + 14, y + 14, 4, 4);
@@ -108,8 +107,7 @@ public class PacMAP {
                 loadStrings("SCORE:",x,y,charToImages);
                 break;
             case '0':
-                playerPointsPlaceHolder="000000";
-                //loadStrings(playerPointsPlaceHolder ,x,y,);
+                scoreString=new DynamicNumber("0000000",x,y+5, TILE_SIZE /2);
                 break;
         }
     }
@@ -119,16 +117,16 @@ public class PacMAP {
         for(int i=0;i<s.length();i++){
             Char_to_Img char_to_img=new Char_to_Img(tempX,y+5,s.charAt(i));
             hashSet.add(char_to_img);
-            tempX+=gamePanel.tileSize/2;
+            tempX+= TILE_SIZE /2;
         }
-    }
-
-    public void setPlayerPointsPlaceHolder(String playerPointsPlaceHolder) {
-        this.playerPointsPlaceHolder = playerPointsPlaceHolder;
     }
 
     public Player getPlayer() {
         return this.player;
+    }
+
+    public DynamicNumber getScoreString() {
+        return scoreString;
     }
 
     public HashSet<Ghost> getGhosts() {
@@ -158,15 +156,12 @@ public class PacMAP {
         for(Char_to_Img images : charToImages){
             images.draw(g2);
         }
-        for(Char_to_Img images : scoreImages){
-            images.draw(g2);
-        }
-        g2.setColor(Color.YELLOW);
+        scoreString.draw(g2);
     }
 
     public void draw(Graphics2D g2) {
         g2.setColor(Color.BLACK);
-        g2.fillRect(0, 0, this.gamePanel.screenWidth, this.gamePanel.screenHeight);
+        g2.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
         drawMap(g2);
         player.draw(g2);
     }

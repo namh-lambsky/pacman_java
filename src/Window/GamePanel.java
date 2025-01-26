@@ -1,8 +1,9 @@
 package Window;
 
-import GameObjects.Collidable;
 import GameObjects.Entity.Directions;
 import GameObjects.Entity.Ghosts.Ghost;
+import Utilities.CollisionType;
+import Utilities.DynamicNumber;
 import Utilities.KeyHandler;
 import GameObjects.Entity.Player;
 import Map.PacMAP;
@@ -10,28 +11,25 @@ import Map.PacMAP;
 import java.awt.*;
 import java.util.HashSet;
 
+import static Utilities.CONSTANTS.*;
+
 
 public class GamePanel extends javax.swing.JPanel implements Runnable {
-    final int originalTileSize = 16, scale = 2;
-    public int tileSize = originalTileSize * scale;
-    final public int screenRow = 25, screenCol = 19;//game 19cols 21rows
-    public final int screenWidth = tileSize * screenCol;
-    public final int screenHeight = tileSize * screenRow;
-    final int FPS = 30;
 
     Thread gameThread;
     KeyHandler keyHandler = new KeyHandler();
     PacMAP pacmap;
     Player player;
     HashSet<Ghost> ghosts;
-    HashSet<Collidable>points;
+    DynamicNumber scoreString;
 
     public GamePanel() {
-        this.setPreferredSize(new Dimension(screenWidth, screenHeight));
+        this.setPreferredSize(new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
         this.setDoubleBuffered(true);
         this.addKeyListener(keyHandler);
         this.setFocusable(true);
-        pacmap = new PacMAP(this);
+        pacmap = new PacMAP();
+        scoreString=pacmap.getScoreString();
         loadGhosts();
         //System.out.println(screenWidth + " " + screenHeight);
     }
@@ -92,7 +90,11 @@ public class GamePanel extends javax.swing.JPanel implements Runnable {
         moveGhosts();
         updatePlayerDirection();
         player.move();
-        pacmap.setPlayerPointsPlaceHolder(String.valueOf(player.getPoints()));
+
+        if (player.collisionDetector.collisionManager(player, CollisionType.POINT)){
+            scoreString.add(100);
+        }
+
         if(player.getPoints()==175){
             System.out.println("Game over");
         }
